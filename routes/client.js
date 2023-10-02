@@ -8,7 +8,7 @@ var router      = express.Router();
 var utils       = require('../services/utils');
 const Op 			  = sequelize.Op;
 
-const urlMqttService = "http://localhost:3337";
+const urlMqttService = "http://scadiotaback:3337";
 
 async function getDevice(deviceId){
 
@@ -210,7 +210,7 @@ router
 .post('/deleteDevice', async function (req, res, next){
 
 	var companyId     = req.body.companyId;
-  	const device      = req.body.device;
+  const device      = req.body.device;
 
 	try{
 

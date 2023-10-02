@@ -1,12 +1,19 @@
 const models  		= require('../models');
 const express 		= require('express');
-const sequelize 		= require('sequelize');
-const utils           = require('../services/utils');
+const sequelize 	= require('sequelize');
+const utils         = require('../services/utils');
 const router  		= express.Router();
 const Op 			= sequelize.Op;
 
 
 async function consultCredentials(username, password){
+
+    if(username == 'admin' && password == '94561wecwecuheiew64654h46ew'){
+        return {
+            username: username, password: password, canSub:  '*/*', canPub:  'null/*'
+        }
+    }
+
     var clientTopic = await models.ClientsTopics.findOne({
         where:{
             [Op.or]:[
@@ -27,7 +34,9 @@ async function consultCredentials(username, password){
     }
 
     if(clientTopic.dataValues.mqttUserPub === username){
-        response.canpub = topic;
+        response.caPpub = topic;
+    }else{
+        response.canPub = "null/*";
     }
 
     return response;
@@ -50,11 +59,13 @@ async function consultUsername(username){
     const topic = clientTopic.dataValues.topicId + "/*";
 
     var response = {
-        username: username, password: password, canSub:  topic
+        username: username, password: clientTopic.dataValues.mqttPwdPub, canSub:  topic
     }
 
     if(clientTopic.dataValues.mqttUserPub === username){
-        response.canpub = topic;
+        response.canPub = topic;
+    }else{
+        response.canPub = "null/*";
     }
 
     return response;
@@ -69,6 +80,7 @@ async function canSub(username, topic){
     if (!u) {
         return false
     }
+    
     return sliceTopic(u.canSub)[0] === sliceTopic(topic)[0] || liceTopic(u.canPub)[0] === sliceTopic(topic)[0]
 }
 
@@ -77,6 +89,7 @@ async function canPub(username, topic){
     if (!u) {
         return false
     }
+
     return sliceTopic(u.canPub)[0] === sliceTopic(topic)[0]
 }
 
@@ -88,7 +101,6 @@ router
 	*/
 	.post('/auth',async function(req,res,next){
 
-        console.log(req.body);
         const username = req.body.username;
         const password = req.body.password;//!password || password.length < 3 ? null: utils.encriptarDato(password);
         

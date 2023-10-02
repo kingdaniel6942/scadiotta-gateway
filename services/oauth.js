@@ -21,12 +21,15 @@ exports.veryfyUser = function(token) {
   }
 };
 
-exports.validateUser = function(token, pUser){
+exports.validateUser = function(token, userId){
+
+  if(!token || !userId){
+    return null;
+  }
     
-    var userToken = this.veryfyUser(token);
-    
-	if(pUser.id == userToken.user.id){
-		return true;
+  var userToken = this.veryfyUser(token);
+	if(userId == userToken.user.id){
+		return userToken.user;
 	}
-	return false;
+	return null;
 }

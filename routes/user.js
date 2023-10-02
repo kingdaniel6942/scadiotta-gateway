@@ -8,6 +8,27 @@ var router  		= express.Router();
 
 const Op 			= sequelize.Op;
 
+function authenticateToken(req, res, next) {
+
+	var userId   		= req.headers['userid'];
+	var token   		= req.headers['x-access-token'];
+
+	var pUser = oauth.validateUser(token, userId);
+
+	console.log(userId)
+	console.log(token)
+	console.log(pUser)
+
+	if(!pUser || !pUser.id){
+		return res
+			.status(403)
+			.send({user:"Unauthorized"});
+	}
+
+	req.body.user = pUser
+	next()
+}
+
 router
 
 	/*
@@ -43,7 +64,7 @@ router
 				return res.send({error: 'Invalid credentials'})
 
 			var token = await oauth.createToken({id: pUser.id, companyId: pUser.companyId});
-			pUser.clave = "";
+			pUser.password = "";
 
 			return res.send({success: {user: pUser, token: token}});
 
@@ -60,18 +81,9 @@ router
 			- user
 			- token
 	*/
-	.post('/isLogged',async function(req,res,next){
+	.post('/isLogged', authenticateToken, async function(req,res,next){
 
-		var pUser   		= req.body.user;
-		var token   		= req.headers['x-access-token'];
-
-		if(!pUser || !token || !oauth.validateUser(token, pUser)){
-			return res
-	        	.status(401)
-	            .send({user:"Unauthorized"});
-		}
-
-		return res.send({success: pUser})
+		return res.send({success: req.body.user})
 	})
 
 	/*
@@ -79,9 +91,9 @@ router
 		params: 
 			- identificacion 
 	*/
-	.post('/getUserByIdentification',async function(req,res,next){
+	.post('/getUserByIdentification', authenticateToken,async function(req,res,next){
 		try{
-			var pUser = await models.Usuario.findOne({
+			var pUser = await models.User.findOne({
 				where:{
 					identificacion: req.body.identificacion
 				},
@@ -109,29 +121,89 @@ router
 		params: 
 			- UID Correo
 	*/
-	.post('/updateUser',async function(req,res,next){
-		var usuario = req.body.usuario;
+	.post('/updateUser', authenticateToken,async function(req,res,next){
+		var usuario = req.body.nuser;
+		
+		if(usuario.companyId !== req.body.user?.companyId){
+			throw "Invalid company Id"
+		}
+
+		var password = usuario.password;
+		usuario.password = !password || password.length < 3 ? null: utils.encriptarDato(password);	
+
 
 		try{
-			var pUser = await models.Usuario.findOne({
+			var pUser = await models.User.findOne({
 				where:{
-					correo: req.body.usuario.correo
+					id: usuario.id
 				}
 			})
 
 			if(!pUser)
 				return res.send({error: 'usuario no existente'})
 
-			var uUser = await pUser.update(usuario);
-
-			console.log('usuariooo',uUser)
-
+			var uUser = await pUser.update(usuario,{omitNull:true});
 			res.send({success: uUser});
 		}catch(error){
-			console.log({error:error});
-			res.send({error:error})
+			console.log({error:error.message});
+			res.send({error:error.message})
 		}
 	})
+
+	/*
+		Crear usuario
+		params: 
+
+	*/
+	.post('/createUser', authenticateToken,async function(req,res,next){
+
+		var user = req.body;
+		user.companyId = req.body.user?.companyId;
+		user.id=null;
+		user.user = null;
+		
+		var password = req.body.password;
+		user.password = !password || password.length < 3 ? null: utils.encriptarDato(password);	
+
+		try{
+			var pUser = await models.User.findOne({
+				where:{
+					[Op.or]:[
+						{email: req.body.email},
+						{document: req.body.document}
+					]
+				}
+			})
+
+			if(pUser){
+				return res.send({error: 'usuario existente'})
+			}
+
+			pUser =	await models.User.create(user)
+			res.send({success: pUser});
+		}catch(error){
+			console.log({error:error.message});
+			res.send({error:error.message})
+		}
+	})
+
+	.get('/list', authenticateToken,async function(req, res, next){
+
+		try{
+			var pUsers = await models.User.findAll({
+				where:{
+					state: 'ENABLED',
+					companyId:req.body.user?.companyId
+				}
+			})
+
+			res.send({success: pUsers});
+		}catch(error){
+			console.log({error:error.message});
+			res.send({error:error.message})
+		}
+	})
+
 
 
 	

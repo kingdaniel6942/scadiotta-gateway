@@ -31,6 +31,7 @@ module.exports = function(sequelize, DataTypes) {
       Company.hasMany(models.User, { as: 'users', foreignKey: {name: 'companyId', allowNull: true}, onDelete : 'NO ACTION', onUpdate: 'NO ACTION'});
       Company.hasMany(models.ClientsTopics, { as: 'clientsTopics', foreignKey: {name: 'companyId', allowNull: false}, onDelete : 'NO ACTION', onUpdate: 'NO ACTION'});
       Company.hasMany(models.ClientsSignals, { as: 'clientsSignals', foreignKey: {name: 'companyId', allowNull: false}, onDelete : 'NO ACTION', onUpdate: 'NO ACTION'});
+      Company.hasMany(models.ClientPage, { as: 'clientPages', foreignKey: {name: 'companyId', allowNull: false}, onDelete : 'NO ACTION', onUpdate: 'NO ACTION'});
     }
     return Company;
 };
